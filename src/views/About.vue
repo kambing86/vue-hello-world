@@ -10,11 +10,11 @@ export default {
     return { state, upClick };
   },
   computed: {
-    b: vm => {
-      return vm.a.toUpperCase();
+    b() {
+      return this.a.toUpperCase();
     }
   },
-  data: function() {
+  data() {
     return {
       a: "test"
     };
