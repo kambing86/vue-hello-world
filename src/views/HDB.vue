@@ -1,7 +1,15 @@
 <script>
+import Vue from "vue";
 import { reactive, onUnmounted, onMounted } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map } from "lodash";
 import distinctColors from "distinct-colors";
+// @ts-ignore
+import { chartXKCDXY } from "chart.xkcd-vue";
+// @ts-ignore
+import { VProgressCircular } from "vuetify/lib";
+
+Vue.component("chartxkcd-xy", chartXKCDXY);
+Vue.component("v-progress-circular", VProgressCircular);
 
 const useData = () => {
   const state = reactive({
@@ -84,6 +92,12 @@ export default {
   render() {
     return (
       <div>
+        {this.state.records.length === 0 && (
+          <v-progress-circular
+            indeterminate
+            color="primary"
+          ></v-progress-circular>
+        )}
         {this.state.records.length > 0 && (
           <chartxkcd-xy config={this.xyConfig}></chartxkcd-xy>
         )}
