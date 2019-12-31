@@ -4,8 +4,11 @@ import "./registerServiceWorker";
 import router from "./router";
 import store from "./store";
 import VueCompositionApi from "@vue/composition-api";
+// @ts-ignore
+import { chartXKCDXY } from "chart.xkcd-vue";
 
 Vue.use(VueCompositionApi);
+Vue.component("chartxkcd-xy", chartXKCDXY);
 
 Vue.config.productionTip = false;
 

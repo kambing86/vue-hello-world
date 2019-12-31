@@ -1,5 +1,7 @@
 <script>
 import { reactive, onUnmounted, onMounted } from "@vue/composition-api";
+import { flow, groupBy, mapValues, map } from "lodash";
+import distinctColors from "distinct-colors";
 
 const useData = () => {
   const state = reactive({
@@ -23,9 +25,55 @@ export default {
     return { state };
   },
   computed: {
+    xyConfig: vm => {
+      const normalizedRecords = vm.recordsIn2019.map(r => ({
+        ...r,
+        town: r.town.toUpperCase()
+      }));
+      const labels = Array.from(
+        new Set(normalizedRecords.map(r => r.quarter))
+      ).sort();
+      const transformFunc = flow([
+        arr => groupBy(arr, r => r.town),
+        obj =>
+          mapValues(obj, v =>
+            labels
+              .map(q => v.find(r => r.quarter === q))
+              .filter(r => r != null && r.price !== "-")
+              .map(r => ({
+                x: r.quarter.replace("Q", ""),
+                y: parseInt(r.price)
+              }))
+          ),
+        obj => map(obj, (value, key) => ({ label: key, data: value }))
+      ]);
+      const datasets = transformFunc(normalizedRecords);
+      const dataColors = distinctColors({
+        count: datasets.length,
+        quality: Number.MAX_SAFE_INTEGER
+      }).map(c => c.toString());
+      return {
+        title: "Resale Flat Prices",
+        xLabel: "Quarter",
+        yLabel: "$ Singapore Dollors",
+        data: {
+          datasets
+        },
+        options: {
+          dataColors,
+          showLine: true,
+          timeFormat: "YYYY-M",
+          dotSize: 1
+        }
+      };
+    },
     recordsIn2019: vm => {
       return vm.state.records
-        .filter(r => r.quarter.startsWith("2019") && r.flat_type === "5-ROOM")
+        .filter(
+          r =>
+            r.quarter.startsWith("2019") &&
+            r.flat_type.toLowerCase() === "5-room"
+        )
         .sort((a, b) => {
           if (a.price === "-") return 1;
           if (b.price === "-") return -1;
@@ -36,11 +84,9 @@ export default {
   render() {
     return (
       <div>
-        <ul>
-          {this.recordsIn2019.map(record => (
-            <li>{JSON.stringify(record)}</li>
-          ))}
-        </ul>
+        {this.state.records.length > 0 && (
+          <chartxkcd-xy config={this.xyConfig}></chartxkcd-xy>
+        )}
       </div>
     );
   }
