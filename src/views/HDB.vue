@@ -7,9 +7,8 @@ import distinctColors from "distinct-colors";
 import { chartXKCDXY } from "chart.xkcd-vue";
 // @ts-ignore
 import { VProgressCircular } from "vuetify/lib";
-
-Vue.component("chartxkcd-xy", chartXKCDXY);
-Vue.component("v-progress-circular", VProgressCircular);
+import ECharts from "vue-echarts";
+import "echarts";
 
 const useData = () => {
   const state = reactive({
@@ -27,17 +26,26 @@ const useData = () => {
   return state;
 };
 
+const getNearestMin = numbers => {
+  const min = Math.min(...numbers);
+  const nearestUnit = Math.pow(10, Math.floor(Math.log10(min)));
+  return min - (min % nearestUnit);
+};
+
 export default {
-  setup() {
+  components: {
+    "v-progress-circular": VProgressCircular,
+    "chartxkcd-xy": chartXKCDXY,
+    "v-chart": ECharts
+  },
+  setup(props, context) {
+    // console.log("setup", props, context);
     const state = useData();
     return { state };
   },
   computed: {
     xyConfig: vm => {
-      const normalizedRecords = vm.recordsIn2019.map(r => ({
-        ...r,
-        town: r.town.toUpperCase()
-      }));
+      const normalizedRecords = vm.recordsIn2019;
       const labels = Array.from(
         new Set(normalizedRecords.map(r => r.quarter))
       ).sort();
@@ -47,7 +55,7 @@ export default {
           mapValues(obj, v =>
             labels
               .map(q => v.find(r => r.quarter === q))
-              .filter(r => r != null && r.price !== "-")
+              .filter(r => r != null && r.price !== 0)
               .map(r => ({
                 x: r.quarter.replace("Q", ""),
                 y: parseInt(r.price)
@@ -76,30 +84,112 @@ export default {
       };
     },
     recordsIn2019: vm => {
-      return vm.state.records
+      const normalize = r => {
+        let town = r.town.toUpperCase();
+        if (town.startsWith("CENTRAL")) {
+          town = "CENTRAL";
+        }
+        return {
+          ...r,
+          town,
+          flat_type: r.flat_type.toUpperCase(),
+          price: r.price === "-" ? 0 : parseInt(r.price)
+        };
+      };
+      const result = vm.state.records
         .filter(
           r =>
             r.quarter.startsWith("2019") &&
-            r.flat_type.toLowerCase() === "5-room"
+            r.flat_type.toUpperCase() === "5-ROOM"
         )
-        .sort((a, b) => {
-          if (a.price === "-") return 1;
-          if (b.price === "-") return -1;
-          return parseInt(a.price) - parseInt(b.price);
-        });
+        .map(normalize);
+      // console.log(result.filter(r => r.town.startsWith("QUEEN")));
+      return result;
+    },
+    options: vm => {
+      const normalizedRecords = vm.recordsIn2019;
+      const labels = Array.from(
+        new Set(normalizedRecords.map(r => r.quarter))
+      ).sort();
+      const transformFunc = flow([
+        arr => groupBy(arr, r => r.town),
+        obj =>
+          mapValues(obj, v =>
+            labels
+              .map(q => v.find(r => r.quarter === q))
+              .filter(r => r != null)
+              .map(r => (r.price === 0 ? null : r.price))
+          ),
+        obj =>
+          map(obj, (value, key) => ({
+            name: key,
+            type: "line",
+            data: value,
+            connectNulls: true
+          })),
+        arr => arr.filter(a => !a.data.every(d => d === null))
+      ]);
+      const datasets = transformFunc(normalizedRecords);
+      const legends = datasets.map(d => d.name);
+      const color = distinctColors({
+        count: datasets.length,
+        quality: Number.MAX_SAFE_INTEGER
+      }).map(c => c.toString());
+      return {
+        title: {
+          text: "Resale Flat Prices"
+        },
+        tooltip: {
+          trigger: "axis"
+        },
+        legend: {
+          data: legends,
+          top: "4%"
+        },
+        grid: {
+          top: "20%",
+          left: "5%",
+          right: "5%",
+          bottom: "5%",
+          containLabel: true
+        },
+        xAxis: {
+          name: "Quarter",
+          nameLocation: "center",
+          nameGap: 25,
+          boundaryGap: false,
+          data: labels
+        },
+        yAxis: {
+          type: "value",
+          name: "$ Singapore dollars",
+          min: value => {
+            return getNearestMin([value.min]);
+          }
+        },
+        series: datasets,
+        color
+      };
     }
   },
   render() {
     return (
-      <div>
+      <div style={{ height: "100%" }}>
         {this.state.records.length === 0 && (
           <v-progress-circular
             indeterminate
             color="primary"
           ></v-progress-circular>
         )}
-        {this.state.records.length > 0 && (
+        {/*{this.state.records.length > 0 && (
           <chartxkcd-xy config={this.xyConfig}></chartxkcd-xy>
+        )}*/}
+        {this.state.records.length > 0 && (
+          <v-chart
+            options={this.options}
+            style={{ width: "100%", height: "100%" }}
+            autoresize
+          />
         )}
       </div>
     );
