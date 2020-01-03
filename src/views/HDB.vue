@@ -30,6 +30,8 @@ const getNearestMin = numbers => {
   return min - (min % nearestUnit);
 };
 
+const roomType = "5-ROOM";
+
 export default {
   components: {
     "v-layout": VLayout,
@@ -56,11 +58,27 @@ export default {
         };
       };
       const result = vm.data.records
-        .filter(r => r.flat_type.toUpperCase() === "5-ROOM")
+        .filter(r => r.flat_type.toUpperCase() === roomType)
         .map(normalize);
       return result;
     },
     options: vm => {
+      const isDarkTheme = vm.$vuetify.theme.isDark;
+      const textStyle = isDarkTheme ? { textStyle: { color: "#fff" } } : {};
+      const lineStyle = isDarkTheme
+        ? { axisLine: { lineStyle: { color: "#fff" } } }
+        : {};
+      const dataZoomStyle = isDarkTheme
+        ? {
+            dataBackground: {
+              lineStyle: { color: "#fff" },
+              areaStyle: { color: "#aaa" }
+            }
+          }
+        : {};
+      const datasetColorStyle = isDarkTheme
+        ? { lightMin: 50, lightMax: 100 }
+        : { lightMin: 0, lightMax: 50 };
       const normalizedRecords = vm.recordsIn2019;
       const labels = Array.from(
         new Set(normalizedRecords.map(r => r.quarter))
@@ -86,13 +104,16 @@ export default {
       const legends = datasets.map(d => d.name);
       const color = distinctColors({
         count: datasets.length,
-        quality: Number.MAX_SAFE_INTEGER
+        chromaMin: 50,
+        quality: Number.MAX_SAFE_INTEGER,
+        ...datasetColorStyle
       }).map(c => c.toString());
       return {
         title: {
-          text: "5-room Resale Flat Prices",
+          text: `${roomType} Resale Flat Prices`,
           left: "50%",
-          textAlign: "center"
+          textAlign: "center",
+          ...textStyle
         },
         tooltip: {
           trigger: "item"
@@ -100,11 +121,14 @@ export default {
         legend: {
           type: "scroll",
           top: "4%",
-          data: legends
+          data: legends,
+          ...textStyle
         },
         dataZoom: [
           {
-            type: "slider"
+            type: "slider",
+            ...dataZoomStyle,
+            ...textStyle
           }
         ],
         grid: {
@@ -119,17 +143,20 @@ export default {
           nameLocation: "center",
           nameGap: 25,
           boundaryGap: false,
-          data: labels
+          data: labels,
+          ...lineStyle
         },
         yAxis: {
           type: "value",
           name: "$ Singapore dollars",
           min: value => {
             return getNearestMin([value.min]);
-          }
+          },
+          ...lineStyle
         },
         series: datasets,
-        color
+        color,
+        ...textStyle
       };
     }
   },

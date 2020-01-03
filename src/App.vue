@@ -19,6 +19,13 @@
           src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
           width="100"
         />
+
+        <v-switch
+          v-model="$vuetify.theme.dark"
+          hide-details
+          inset
+          label="Theme Dark"
+        ></v-switch>
       </div>
 
       <v-spacer></v-spacer>
