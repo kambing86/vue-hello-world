@@ -1,10 +1,10 @@
 <script>
 import Vue from "vue";
 import { reactive, onUnmounted, onMounted } from "@vue/composition-api";
-import { flow, groupBy, mapValues, map, cloneDeep } from "lodash";
+import { flow, groupBy, mapValues, map, sortBy, uniqBy } from "lodash";
 import distinctColors from "distinct-colors";
 // @ts-ignore
-import { VBtn, VLayout, VProgressCircular } from "vuetify/lib";
+import { VBtn, VLayout, VProgressCircular, VSelect } from "vuetify/lib";
 import ECharts from "vue-echarts";
 import "echarts";
 
@@ -30,39 +30,52 @@ const getNearestMin = numbers => {
   return min - (min % nearestUnit);
 };
 
-const roomType = "5-ROOM";
-
 export default {
   components: {
     "v-layout": VLayout,
     "v-progress-circular": VProgressCircular,
-    "v-chart": ECharts
+    "v-chart": ECharts,
+    "v-select": VSelect
   },
   setup(props, context) {
     // console.log("setup", props, context);
     const data = useData();
-    return { data };
+    const state = reactive({
+      roomType: "5-ROOM"
+    });
+    const changeRoom = value => {
+      state.roomType = value;
+    };
+    return { data, state, changeRoom };
   },
   computed: {
-    recordsIn2019: vm => {
+    records: vm => {
       const normalize = r => {
         let town = r.town.toUpperCase();
         if (town.startsWith("CENTRAL")) {
           town = "CENTRAL";
         }
+        let flat_type = r.flat_type.toUpperCase();
+        if (flat_type.startsWith("EXEC")) {
+          flat_type = "EXEC";
+        }
         return {
           ...r,
           town,
-          flat_type: r.flat_type.toUpperCase(),
-          price: r.price === "-" ? 0 : parseInt(r.price)
+          flat_type,
+          price: r.price === "-" || r.price === "na" ? 0 : parseInt(r.price)
         };
       };
-      const result = vm.data.records
-        .filter(r => r.flat_type.toUpperCase() === roomType)
-        .map(normalize);
+      const result = vm.data.records.map(normalize);
+      // check room type
+      // console.log(uniqBy(result, r => r.flat_type).map(r => r.flat_type));
       return result;
     },
+    roomTypes: vm => {
+      return uniqBy(vm.records, r => r.flat_type).map(r => r.flat_type);
+    },
     options: vm => {
+      const selectedRoomType = vm.state.roomType;
       const isDarkTheme = vm.$vuetify.theme.isDark;
       const textStyle = isDarkTheme ? { textStyle: { color: "#fff" } } : {};
       const lineStyle = isDarkTheme
@@ -79,10 +92,9 @@ export default {
       const datasetColorStyle = isDarkTheme
         ? { lightMin: 50, lightMax: 100 }
         : { lightMin: 0, lightMax: 50 };
-      const normalizedRecords = vm.recordsIn2019;
-      const labels = Array.from(
-        new Set(normalizedRecords.map(r => r.quarter))
-      ).sort();
+      const records = vm.records.filter(r => r.flat_type === selectedRoomType);
+      console.log({ records });
+      const labels = Array.from(new Set(records.map(r => r.quarter))).sort();
       const transformFunc = flow([
         arr => groupBy(arr, r => r.town),
         obj =>
@@ -98,9 +110,10 @@ export default {
             data: value,
             connectNulls: true
           })),
-        arr => arr.filter(a => !a.data.every(d => d === null))
+        arr => arr.filter(a => !a.data.every(d => d === null)),
+        arr => sortBy(arr, a => a.name)
       ]);
-      const datasets = transformFunc(normalizedRecords);
+      const datasets = transformFunc(records);
       const legends = datasets.map(d => d.name);
       const color = distinctColors({
         count: datasets.length,
@@ -110,7 +123,7 @@ export default {
       }).map(c => c.toString());
       return {
         title: {
-          text: `${roomType} Resale Flat Prices`,
+          text: `${selectedRoomType} Resale Flat Prices`,
           left: "50%",
           textAlign: "center",
           ...textStyle
@@ -129,6 +142,9 @@ export default {
             type: "slider",
             ...dataZoomStyle,
             ...textStyle
+          },
+          {
+            type: "inside"
           }
         ],
         grid: {
@@ -168,6 +184,16 @@ export default {
             indeterminate
             color="primary"
           ></v-progress-circular>
+        )}
+        {this.roomTypes.length > 0 && (
+          <v-select
+            items={this.roomTypes}
+            item-value={this.state.roomType}
+            label="Room types"
+            dense
+            outlined
+            onChange={this.changeRoom}
+          ></v-select>
         )}
         {this.data.records.length > 0 && (
           <v-chart
