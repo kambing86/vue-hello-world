@@ -90,14 +90,17 @@ export default {
       }).map(c => c.toString());
       return {
         title: {
-          text: "5-room Resale Flat Prices"
+          text: "5-room Resale Flat Prices",
+          left: "50%",
+          textAlign: "center"
         },
         tooltip: {
           trigger: "item"
         },
         legend: {
-          data: legends,
-          top: "4%"
+          type: "scroll",
+          top: "4%",
+          data: legends
         },
         dataZoom: [
           {
@@ -105,7 +108,7 @@ export default {
           }
         ],
         grid: {
-          top: "15%",
+          top: "12%",
           left: "5%",
           right: "5%",
           bottom: "5%",
