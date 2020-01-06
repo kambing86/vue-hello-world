@@ -4,7 +4,7 @@ import { reactive, onUnmounted, onMounted } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy, uniqBy } from "lodash";
 import distinctColors from "distinct-colors/src";
 // @ts-ignore
-import { VBtn, VLayout, VProgressCircular, VSelect } from "vuetify/lib";
+import { VBtn, VCard, VProgressCircular, VSelect } from "vuetify/lib";
 import ECharts from "vue-echarts";
 import "echarts";
 
@@ -32,7 +32,7 @@ const getNearestMin = numbers => {
 
 export default {
   components: {
-    "v-layout": VLayout,
+    "v-card": VCard,
     "v-progress-circular": VProgressCircular,
     "v-chart": ECharts,
     "v-select": VSelect
@@ -75,17 +75,34 @@ export default {
       return uniqBy(vm.records, r => r.flat_type).map(r => r.flat_type);
     },
     options: vm => {
+      const darkThemeColor1 = "#fff";
+      const darkThemeColor2 = "#888";
       const selectedRoomType = vm.state.roomType;
       const isDarkTheme = vm.$vuetify.theme.isDark;
-      const textStyle = isDarkTheme ? { textStyle: { color: "#fff" } } : {};
-      const lineStyle = isDarkTheme
-        ? { axisLine: { lineStyle: { color: "#fff" } } }
+      const textStyle = isDarkTheme
+        ? { textStyle: { color: darkThemeColor1 } }
         : {};
+      const lineStyle = isDarkTheme
+        ? {
+            lineStyle: { color: darkThemeColor1 }
+          }
+        : {};
+      const legendStyle = isDarkTheme
+        ? {
+            ...textStyle,
+            inactiveColor: darkThemeColor2,
+            borderColor: darkThemeColor2,
+            pageTextStyle: { color: darkThemeColor1 },
+            pageIconColor: darkThemeColor1,
+            pageIconInactiveColor: darkThemeColor2
+          }
+        : {};
+      const axisStyle = isDarkTheme ? { axisLine: { ...lineStyle } } : {};
       const dataZoomStyle = isDarkTheme
         ? {
             dataBackground: {
-              lineStyle: { color: "#fff" },
-              areaStyle: { color: "#aaa" }
+              ...lineStyle,
+              areaStyle: { color: darkThemeColor2 }
             }
           }
         : {};
@@ -132,9 +149,9 @@ export default {
         },
         legend: {
           type: "scroll",
-          top: "4%",
+          top: "28",
           data: legends,
-          ...textStyle
+          ...legendStyle
         },
         dataZoom: [
           {
@@ -147,10 +164,10 @@ export default {
           }
         ],
         grid: {
-          top: "12%",
-          left: "5%",
-          right: "5%",
-          bottom: "5%",
+          top: "88",
+          left: "10",
+          right: "10",
+          bottom: "38",
           containLabel: true
         },
         xAxis: {
@@ -159,7 +176,7 @@ export default {
           nameGap: 25,
           boundaryGap: false,
           data: labels,
-          ...lineStyle
+          ...axisStyle
         },
         yAxis: {
           type: "value",
@@ -167,7 +184,7 @@ export default {
           min: value => {
             return getNearestMin([value.min]);
           },
-          ...lineStyle
+          ...axisStyle
         },
         series: datasets,
         color,
@@ -177,7 +194,7 @@ export default {
   },
   render() {
     return (
-      <v-layout column fill-height justify-center align-center pa-2>
+      <v-card class="d-flex flex-column fill-height align-center pa-2">
         {this.data.records.length === 0 && (
           <v-progress-circular
             indeterminate
@@ -200,7 +217,7 @@ export default {
             autoresize
           />
         )}
-      </v-layout>
+      </v-card>
     );
   }
 };
