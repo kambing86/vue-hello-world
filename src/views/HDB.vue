@@ -7,12 +7,12 @@ import {
   computed
 } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy } from "lodash";
-import color from "color";
 // @ts-ignore
 import { VBtn, VCard, VProgressCircular, VSelect } from "vuetify/lib";
 import ECharts from "vue-echarts";
 import "echarts";
 import { getRandom } from "@/utils/goldenRand";
+import iwanthue from "iwanthue";
 
 const useData = () => {
   const data = reactive({
@@ -136,12 +136,20 @@ const useEChartsOptions = (context, data, state) => {
     ]);
     const datasets = transformFunc(records);
     const legends = datasets.map(d => d.name);
-    const colors = [];
-    const hRandom = getRandom(0, 360);
-    const lRandom = isDarkTheme ? getRandom(50, 75) : getRandom(25, 50);
-    for (let i = 0; i < datasets.length; i++) {
-      colors.push(color({ h: hRandom(), s: 100, l: lRandom() }).hex());
-    }
+    const lightness = isDarkTheme
+      ? {
+          lmin: 50,
+          lmax: 85
+        }
+      : {
+          lmin: 15,
+          lmax: 50
+        };
+    const colors = iwanthue(datasets.length, {
+      colorSpace: { cmin: 40, cmax: 70, ...lightness },
+      seed: "random seed",
+      quality: 100
+    });
     return {
       title: {
         text: `${selectedRoomType} Resale Flat Prices`,
