@@ -13,8 +13,8 @@
   "dependencies": {
     "@types/lodash": "^4.14.149",
     "@vue/composition-api": "^0.3.4",
+    "color": "^3.1.2",
     "core-js": "^3.6.1",
-    "distinct-colors": "^2.0.0",
     "echarts": "^4.6.0",
     "lodash": "^4.17.15",
     "vue": "^2.6.11",
