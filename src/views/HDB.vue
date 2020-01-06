@@ -2,7 +2,7 @@
 import Vue from "vue";
 import { reactive, onUnmounted, onMounted } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy, uniqBy } from "lodash";
-import distinctColors from "distinct-colors";
+import distinctColors from "distinct-colors/src";
 // @ts-ignore
 import { VBtn, VLayout, VProgressCircular, VSelect } from "vuetify/lib";
 import ECharts from "vue-echarts";
@@ -43,10 +43,7 @@ export default {
     const state = reactive({
       roomType: "5-ROOM"
     });
-    const changeRoom = value => {
-      state.roomType = value;
-    };
-    return { data, state, changeRoom };
+    return { data, state };
   },
   computed: {
     records: vm => {
@@ -63,7 +60,10 @@ export default {
           ...r,
           town,
           flat_type,
-          price: r.price === "-" || r.price === "na" ? 0 : parseInt(r.price)
+          price:
+            r.price === "-" || r.price.toLowerCase() === "na"
+              ? 0
+              : parseInt(r.price)
         };
       };
       const result = vm.data.records.map(normalize);
@@ -93,7 +93,6 @@ export default {
         ? { lightMin: 50, lightMax: 100 }
         : { lightMin: 0, lightMax: 50 };
       const records = vm.records.filter(r => r.flat_type === selectedRoomType);
-      console.log({ records });
       const labels = Array.from(new Set(records.map(r => r.quarter))).sort();
       const transformFunc = flow([
         arr => groupBy(arr, r => r.town),
@@ -101,7 +100,7 @@ export default {
           mapValues(obj, v =>
             labels
               .map(q => v.find(r => r.quarter === q))
-              .map(r => r && (r.price === 0 ? null : r.price))
+              .map(r => (r && (r.price === 0 ? null : r.price)) || null)
           ),
         obj =>
           map(obj, (value, key) => ({
@@ -178,7 +177,7 @@ export default {
   },
   render() {
     return (
-      <v-layout column fill-height justify-center align-center>
+      <v-layout column fill-height justify-center align-center pa-2>
         {this.data.records.length === 0 && (
           <v-progress-circular
             indeterminate
@@ -188,11 +187,10 @@ export default {
         {this.roomTypes.length > 0 && (
           <v-select
             items={this.roomTypes}
-            item-value={this.state.roomType}
+            v-model={this.state.roomType}
             label="Room types"
             dense
             outlined
-            onChange={this.changeRoom}
           ></v-select>
         )}
         {this.data.records.length > 0 && (
