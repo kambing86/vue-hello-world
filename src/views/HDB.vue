@@ -1,17 +1,10 @@
 <script>
 import Vue from "vue";
-import {
-  reactive,
-  onUnmounted,
-  onMounted,
-  computed
-} from "@vue/composition-api";
+import { reactive, onMounted, computed } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy } from "lodash";
-// @ts-ignore
 import { VBtn, VCard, VProgressCircular, VSelect } from "vuetify/lib";
 import ECharts from "vue-echarts";
 import "echarts";
-import { getRandom } from "@/utils/goldenRand";
 import iwanthue from "iwanthue";
 
 const useData = () => {
@@ -58,14 +51,16 @@ const normalizeData = r => {
 };
 
 const useEChartsOptions = (context, data, state) => {
+  const quarters = computed(() =>
+    Array.from(new Set(data.records.map(r => r.quarter))).sort()
+  );
   const datasets = computed(() => {
-    const records = data.records.filter(r => r.flat_type === selectedRoomType);
-    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
+    const records = data.records.filter(r => r.flat_type === state.roomType);
     const transformFunc = flow([
       arr => groupBy(arr, r => r.town),
       obj =>
         mapValues(obj, v =>
-          quarters
+          quarters.value
             .map(q => v.find(r => r.quarter === q))
             .map(r => (r && (r.price === 0 ? null : r.price)) || null)
         ),
@@ -81,8 +76,8 @@ const useEChartsOptions = (context, data, state) => {
     ]);
     return transformFunc(records);
   });
+  const legends = computed(() => datasets.value.map(d => d.name));
   return computed(() => {
-    const selectedRoomType = state.roomType;
     const isDarkTheme = context.root.$vuetify.theme.isDark;
     const textStyle = isDarkTheme
       ? { textStyle: { color: darkThemeColor1 } }
@@ -114,28 +109,6 @@ const useEChartsOptions = (context, data, state) => {
     const datasetColorStyle = isDarkTheme
       ? { lightMin: 50, lightMax: 100 }
       : { lightMin: 0, lightMax: 50 };
-    const records = data.records.filter(r => r.flat_type === selectedRoomType);
-    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
-    const transformFunc = flow([
-      arr => groupBy(arr, r => r.town),
-      obj =>
-        mapValues(obj, v =>
-          quarters
-            .map(q => v.find(r => r.quarter === q))
-            .map(r => (r && (r.price === 0 ? null : r.price)) || null)
-        ),
-      obj =>
-        map(obj, (value, key) => ({
-          name: key,
-          type: "line",
-          data: value,
-          connectNulls: true
-        })),
-      arr => arr.filter(a => !a.data.every(d => d === null)),
-      arr => sortBy(arr, a => a.name)
-    ]);
-    const datasets = transformFunc(records);
-    const legends = datasets.map(d => d.name);
     const lightness = isDarkTheme
       ? {
           lmin: 50,
@@ -145,14 +118,14 @@ const useEChartsOptions = (context, data, state) => {
           lmin: 15,
           lmax: 50
         };
-    const colors = iwanthue(datasets.length, {
-      colorSpace: { cmin: 40, cmax: 70, ...lightness },
+    const colors = iwanthue(datasets.value.length, {
+      colorSpace: { cmin: 30, cmax: 100, ...lightness },
       seed: "random seed",
       quality: 100
     });
     return {
       title: {
-        text: `${selectedRoomType} Resale Flat Prices`,
+        text: `${state.roomType} Resale Flat Prices`,
         left: "50%",
         textAlign: "center",
         ...textStyle
@@ -163,7 +136,7 @@ const useEChartsOptions = (context, data, state) => {
       legend: {
         type: "scroll",
         top: "28",
-        data: legends,
+        data: legends.value,
         ...legendStyle
       },
       dataZoom: [
@@ -188,7 +161,7 @@ const useEChartsOptions = (context, data, state) => {
         nameLocation: "center",
         nameGap: 25,
         boundaryGap: false,
-        data: quarters,
+        data: quarters.value,
         ...axisStyle
       },
       yAxis: {
@@ -199,7 +172,7 @@ const useEChartsOptions = (context, data, state) => {
         },
         ...axisStyle
       },
-      series: datasets,
+      series: datasets.value,
       color: colors,
       ...textStyle
     };
@@ -227,7 +200,7 @@ export default {
   },
   render() {
     return (
-      <v-card class="d-flex flex-column fill-height align-center pa-2">
+      <v-card class="d-flex flex-column fill-height justify-center align-center pa-2">
         {this.data.records.length === 0 && (
           <v-progress-circular
             indeterminate

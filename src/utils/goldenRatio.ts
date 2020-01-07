@@ -1,6 +1,10 @@
 const goldenRatio = 0.618033988749895;
 
-function getRandom(min: number, max: number, seed: number = 0): () => number {
+function getGoldenRatioNumberFunc(
+  min: number = 0,
+  max: number = 1,
+  seed: number = 0
+): () => number {
   let current = seed;
   const diff = max - min;
   return () => {
@@ -10,4 +14,4 @@ function getRandom(min: number, max: number, seed: number = 0): () => number {
   };
 }
 
-export { getRandom };
+export { getGoldenRatioNumberFunc };
