@@ -10,11 +10,11 @@ import iwanthue from "iwanthue";
 const useData = () => {
   const data = reactive({
     fields: [],
-    records: []
+    records: [],
   });
   onMounted(async () => {
     const response = await fetch(
-      "https://data.gov.sg/api/action/datastore_search?resource_id=a5ddfc4d-0e43-4bfe-8f51-e504e1365e27&limit=10000"
+      "https://data.gov.sg/api/action/datastore_search?resource_id=a5ddfc4d-0e43-4bfe-8f51-e504e1365e27&limit=10000",
     );
     const jsonResult = await response.json();
     data.fields = jsonResult.result.fields;
@@ -46,13 +46,13 @@ const normalizeData = r => {
     town,
     flat_type,
     price:
-      r.price === "-" || r.price.toLowerCase() === "na" ? 0 : parseInt(r.price)
+      r.price === "-" || r.price.toLowerCase() === "na" ? 0 : parseInt(r.price),
   };
 };
 
 const useEChartsOptions = (context, data, state) => {
   const quarters = computed(() =>
-    Array.from(new Set(data.records.map(r => r.quarter))).sort()
+    Array.from(new Set(data.records.map(r => r.quarter))).sort(),
   );
   const datasets = computed(() => {
     const records = data.records.filter(r => r.flat_type === state.roomType);
@@ -62,17 +62,17 @@ const useEChartsOptions = (context, data, state) => {
         mapValues(obj, v =>
           quarters.value
             .map(q => v.find(r => r.quarter === q))
-            .map(r => (r && (r.price === 0 ? null : r.price)) || null)
+            .map(r => (r && (r.price === 0 ? null : r.price)) || null),
         ),
       obj =>
         map(obj, (value, key) => ({
           name: key,
           type: "line",
           data: value,
-          connectNulls: true
+          connectNulls: true,
         })),
       arr => arr.filter(a => !a.data.every(d => d === null)),
-      arr => sortBy(arr, a => a.name)
+      arr => sortBy(arr, a => a.name),
     ]);
     return transformFunc(records);
   });
@@ -84,7 +84,7 @@ const useEChartsOptions = (context, data, state) => {
       : {};
     const lineStyle = isDarkTheme
       ? {
-          lineStyle: { color: darkThemeColor1 }
+          lineStyle: { color: darkThemeColor1 },
         }
       : {};
     const legendStyle = isDarkTheme
@@ -94,7 +94,7 @@ const useEChartsOptions = (context, data, state) => {
           borderColor: darkThemeColor2,
           pageTextStyle: { color: darkThemeColor1 },
           pageIconColor: darkThemeColor1,
-          pageIconInactiveColor: darkThemeColor2
+          pageIconInactiveColor: darkThemeColor2,
         }
       : {};
     const axisStyle = isDarkTheme ? { axisLine: { ...lineStyle } } : {};
@@ -102,8 +102,8 @@ const useEChartsOptions = (context, data, state) => {
       ? {
           dataBackground: {
             ...lineStyle,
-            areaStyle: { color: darkThemeColor2 }
-          }
+            areaStyle: { color: darkThemeColor2 },
+          },
         }
       : {};
     const datasetColorStyle = isDarkTheme
@@ -112,49 +112,49 @@ const useEChartsOptions = (context, data, state) => {
     const lightness = isDarkTheme
       ? {
           lmin: 50,
-          lmax: 85
+          lmax: 85,
         }
       : {
           lmin: 15,
-          lmax: 50
+          lmax: 50,
         };
     const colors = iwanthue(datasets.value.length, {
       colorSpace: { cmin: 30, cmax: 100, ...lightness },
       seed: "random seed",
-      quality: 100
+      quality: 100,
     });
     return {
       title: {
         text: `${state.roomType} Resale Flat Prices`,
         left: "50%",
         textAlign: "center",
-        ...textStyle
+        ...textStyle,
       },
       tooltip: {
-        trigger: "item"
+        trigger: "item",
       },
       legend: {
         type: "scroll",
         top: "28",
         data: legends.value,
-        ...legendStyle
+        ...legendStyle,
       },
       dataZoom: [
         {
           type: "slider",
           ...dataZoomStyle,
-          ...textStyle
+          ...textStyle,
         },
         {
-          type: "inside"
-        }
+          type: "inside",
+        },
       ],
       grid: {
         top: "88",
         left: "10",
         right: "10",
         bottom: "38",
-        containLabel: true
+        containLabel: true,
       },
       xAxis: {
         name: "Quarter",
@@ -162,7 +162,7 @@ const useEChartsOptions = (context, data, state) => {
         nameGap: 25,
         boundaryGap: false,
         data: quarters.value,
-        ...axisStyle
+        ...axisStyle,
       },
       yAxis: {
         type: "value",
@@ -170,11 +170,11 @@ const useEChartsOptions = (context, data, state) => {
         min: value => {
           return getNearestMin([value.min]);
         },
-        ...axisStyle
+        ...axisStyle,
       },
       series: datasets.value,
       color: colors,
-      ...textStyle
+      ...textStyle,
     };
   });
 };
@@ -184,16 +184,16 @@ export default {
     "v-card": VCard,
     "v-progress-circular": VProgressCircular,
     "v-chart": ECharts,
-    "v-select": VSelect
+    "v-select": VSelect,
   },
   setup(props, context) {
     // console.log("setup", props, context);
     const data = useData();
     const state = reactive({
-      roomType: "5-ROOM"
+      roomType: "5-ROOM",
     });
     const roomTypes = computed(() =>
-      Array.from(new Set(data.records.map(r => r.flat_type)))
+      Array.from(new Set(data.records.map(r => r.flat_type))),
     );
     const options = useEChartsOptions(context, data, state);
     return { data, state, roomTypes, options };
@@ -225,6 +225,6 @@ export default {
         )}
       </v-card>
     );
-  }
+  },
 };
 </script>

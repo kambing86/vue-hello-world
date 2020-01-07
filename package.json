@@ -8,7 +8,9 @@
     "test:unit": "vue-cli-service test:unit",
     "test:e2e": "vue-cli-service test:e2e",
     "lint": "vue-cli-service lint",
-    "test": "yarn test:unit"
+    "test": "yarn test:unit",
+    "prettier": "prettier --check 'src/**/*.*' 'tests/**/*.*'",
+    "prettier:write": "prettier --write 'src/**/*.*' 'tests/**/*.*'"
   },
   "dependencies": {
     "@types/lodash": "^4.14.149",
@@ -58,6 +60,7 @@
   "lint-staged": {
     "*.{js,vue,ts}": [
       "vue-cli-service lint",
+      "prettier --write",
       "git add"
     ]
   }

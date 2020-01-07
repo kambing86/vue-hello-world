@@ -20,13 +20,13 @@ export default {
   computed: {
     b() {
       return this.a.toUpperCase();
-    }
+    },
   },
   data() {
     return {
-      a: "test"
+      a: "test",
     };
-  }
+  },
   // render() {
   //   return (
   //     <div class="about">
