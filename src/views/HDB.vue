@@ -1,17 +1,38 @@
-<script>
+<script lang="tsx">
 import Vue from "vue";
-import { reactive, onMounted, computed } from "@vue/composition-api";
+import {
+  reactive,
+  onMounted,
+  computed,
+  SetupContext,
+  createComponent,
+} from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy } from "lodash";
 import { VBtn, VCard, VProgressCircular, VSelect } from "vuetify/lib";
+// @ts-ignore
 import ECharts from "vue-echarts";
 import "echarts";
+// @ts-ignore
 import iwanthue from "iwanthue";
+
+interface IRecord {
+  town: string;
+  flat_type: string;
+  quarter: string;
+  _id: number;
+  price: string;
+}
+
+interface IData {
+  fields: { type: string; id: string }[];
+  records: IRecord[];
+}
 
 const useData = () => {
   const data = reactive({
     fields: [],
     records: [],
-  });
+  } as IData);
   onMounted(async () => {
     const response = await fetch(
       "https://data.gov.sg/api/action/datastore_search?resource_id=a5ddfc4d-0e43-4bfe-8f51-e504e1365e27&limit=10000",
@@ -23,7 +44,7 @@ const useData = () => {
   return data;
 };
 
-const getNearestMin = numbers => {
+const getNearestMin = (numbers: number[]) => {
   const min = Math.min(...numbers);
   const nearestUnit = Math.pow(10, Math.floor(Math.log10(min)));
   return min - (min % nearestUnit);
@@ -32,7 +53,15 @@ const getNearestMin = numbers => {
 const darkThemeColor1 = "#fff";
 const darkThemeColor2 = "#888";
 
-const normalizeData = r => {
+interface INormalizedRecord {
+  town: string;
+  flat_type: string;
+  quarter: string;
+  _id: number;
+  price: number;
+}
+
+const normalizeData = (r: IRecord): INormalizedRecord => {
   let town = r.town.toUpperCase();
   if (town.startsWith("CENTRAL")) {
     town = "CENTRAL";
@@ -50,18 +79,22 @@ const normalizeData = r => {
   };
 };
 
-const useEChartsOptions = (context, data, state) => {
+const useEChartsOptions = (
+  context: SetupContext,
+  data: IData,
+  state: { roomType: string },
+) => {
   const quarters = computed(() =>
     Array.from(new Set(data.records.map(r => r.quarter))).sort(),
   );
   const datasets = computed(() => {
     const records = data.records.filter(r => r.flat_type === state.roomType);
     const transformFunc = flow([
-      arr => groupBy(arr, r => r.town),
+      (arr: INormalizedRecord[]) => groupBy(arr, r => r.town),
       obj =>
-        mapValues(obj, v =>
+        mapValues(obj, (v: INormalizedRecord[]) =>
           quarters.value
-            .map(q => v.find(r => r.quarter === q))
+            .map(q => v.find((r: INormalizedRecord) => r.quarter === q))
             .map(r => (r && (r.price === 0 ? null : r.price)) || null),
         ),
       obj =>
@@ -71,14 +104,14 @@ const useEChartsOptions = (context, data, state) => {
           data: value,
           connectNulls: true,
         })),
-      arr => arr.filter(a => !a.data.every(d => d === null)),
+      arr => arr.filter((a: any) => !a.data.every((d: any) => d === null)),
       arr => sortBy(arr, a => a.name),
     ]);
     return transformFunc(records);
   });
-  const legends = computed(() => datasets.value.map(d => d.name));
+  const legends = computed(() => datasets.value.map((d: any) => d.name));
   return computed(() => {
-    const isDarkTheme = context.root.$vuetify.theme.isDark;
+    const isDarkTheme = context.root.$vuetify.theme.dark;
     const textStyle = isDarkTheme
       ? { textStyle: { color: darkThemeColor1 } }
       : {};
@@ -167,7 +200,7 @@ const useEChartsOptions = (context, data, state) => {
       yAxis: {
         type: "value",
         name: "$ Singapore dollars",
-        min: value => {
+        min: (value: any) => {
           return getNearestMin([value.min]);
         },
         ...axisStyle,
@@ -179,7 +212,7 @@ const useEChartsOptions = (context, data, state) => {
   });
 };
 
-export default {
+export default createComponent({
   components: {
     "v-card": VCard,
     "v-progress-circular": VProgressCircular,
@@ -199,26 +232,42 @@ export default {
     return { data, state, roomTypes, options };
   },
   render() {
+    // check https://github.com/vuejs/composition-api/issues/191 for all @ts-ignore in render
     return (
       <v-card class="d-flex flex-column fill-height justify-center align-center pa-2">
-        {this.data.records.length === 0 && (
+        {//
+        // @ts-ignore
+        this.data.records.length === 0 && (
           <v-progress-circular
             indeterminate
             color="primary"
           ></v-progress-circular>
         )}
-        {this.roomTypes.length > 0 && (
+        {//
+        // @ts-ignore
+        this.roomTypes.length > 0 && (
           <v-select
-            items={this.roomTypes}
-            v-model={this.state.roomType}
+            items={
+              // @ts-ignore
+              this.roomTypes
+            }
+            v-model={
+              // @ts-ignore
+              this.state.roomType
+            }
             label="Room types"
             dense
             outlined
           ></v-select>
         )}
-        {this.data.records.length > 0 && (
+        {//
+        // @ts-ignore
+        this.data.records.length > 0 && (
           <v-chart
-            options={this.options}
+            options={
+              // @ts-ignore
+              this.options
+            }
             style={{ width: "100%", height: "100%" }}
             autoresize
           />
@@ -226,5 +275,5 @@ export default {
       </v-card>
     );
   },
-};
+});
 </script>
