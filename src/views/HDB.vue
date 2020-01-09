@@ -9,7 +9,7 @@ import {
   ref,
   toRefs,
 } from "@vue/composition-api";
-import { flow, groupBy, mapValues, map, sortBy, isEqual } from "lodash";
+import { sortBy, isEqual } from "lodash";
 import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
 // @ts-ignore
 import ECharts from "vue-echarts";
@@ -18,7 +18,12 @@ import "echarts";
 import iwanthue from "iwanthue";
 // @ts-ignore
 import precomputed from "iwanthue/precomputed/k-means";
-import { useData, IData, INormalizedRecord } from "./HDB/getData";
+import {
+  useData,
+  useFilteredData,
+  IData,
+  INormalizedRecord,
+} from "./HDB/getData";
 
 const getNearestMin = (numbers: number[]) => {
   const min = Math.min(...numbers);
@@ -28,51 +33,6 @@ const getNearestMin = (numbers: number[]) => {
 
 const darkThemeColor1 = "#fff";
 const darkThemeColor2 = "#888";
-
-interface IEntry {
-  name: string;
-  type: "line";
-  data: (number | null)[];
-  connectNulls: true;
-}
-
-const useFilteredData = (
-  data: IData,
-  state: {
-    roomType: string;
-    areas: string[];
-  },
-) => {
-  return computed(() => {
-    const records = data.records.filter(
-      r => r.flat_type === state.roomType && state.areas.includes(r.town),
-    );
-    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
-    const transformFunc: (arr: INormalizedRecord[]) => IEntry[] = flow(
-      arr => groupBy(arr, r => r.town),
-      obj =>
-        mapValues(obj, v =>
-          quarters
-            .map(q => v.find(r => r.quarter === q))
-            .map(r => (r && (r.price === 0 ? null : r.price)) || null),
-        ),
-      obj =>
-        map(
-          obj,
-          (value, key) =>
-            ({
-              name: key,
-              type: "line",
-              data: value,
-              connectNulls: true,
-            } as IEntry),
-        ),
-      arr => arr.filter(a => !a.data.every(d => d === null)),
-      arr => sortBy(arr, a => a.name),
-    );
-    return { quarters, datasets: transformFunc(records) };
-  });
-};
 
 const useEChartsOptions = (
   context: SetupContext,
@@ -132,8 +92,7 @@ const useEChartsOptions = (
       dataZoomStyle,
       lightness,
     } = styles.value;
-    const { datasets, quarters } = filteredData.value;
-    const legends = datasets.map(d => d.name);
+    const { datasets, quarters, legends } = filteredData.value;
     const datasetLength = datasets.length;
     const colors =
       datasetLength <= 2
@@ -297,6 +256,7 @@ export default createComponent({
             dense
             outlined
             multiple
+            style={{ width: "50%" }}
           ></v-select>
         )}
         {//

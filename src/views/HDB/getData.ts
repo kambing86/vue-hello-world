@@ -1,4 +1,5 @@
-import { reactive, onMounted } from "@vue/composition-api";
+import { reactive, onMounted, computed } from "@vue/composition-api";
+import { flow, groupBy, mapValues, map, sortBy } from "lodash";
 
 export interface IRecord {
   town: string;
@@ -53,4 +54,51 @@ export const useData = () => {
     data.records = jsonResult.result.records.map(normalizeData);
   });
   return data;
+};
+
+interface IDataset {
+  name: string;
+  type: "line";
+  data: (number | null)[];
+  connectNulls: true;
+}
+
+export const useFilteredData = (
+  data: IData,
+  state: {
+    roomType: string;
+    areas: string[];
+  },
+) => {
+  return computed(() => {
+    const records = data.records.filter(
+      r => r.flat_type === state.roomType && state.areas.includes(r.town),
+    );
+    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
+    const transformFunc: (arr: INormalizedRecord[]) => IDataset[] = flow(
+      arr => groupBy(arr, r => r.town),
+      obj =>
+        mapValues(obj, v =>
+          quarters
+            .map(q => v.find(r => r.quarter === q))
+            .map(r => (r && (r.price === 0 ? null : r.price)) || null),
+        ),
+      obj =>
+        map(
+          obj,
+          (value, key) =>
+            ({
+              name: key,
+              type: "line",
+              data: value,
+              connectNulls: true,
+            } as IDataset),
+        ),
+      arr => arr.filter(a => !a.data.every(d => d === null)),
+      arr => sortBy(arr, a => a.name),
+    );
+    const datasets = transformFunc(records);
+    const legends = datasets.map(d => d.name);
+    return { quarters, datasets, legends };
+  });
 };
