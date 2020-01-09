@@ -7,8 +7,9 @@ import {
   createComponent,
   watch,
   ref,
+  toRefs,
 } from "@vue/composition-api";
-import { flow, groupBy, mapValues, map, sortBy } from "lodash";
+import { flow, groupBy, mapValues, map, sortBy, isEqual } from "lodash";
 import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
 // @ts-ignore
 import ECharts from "vue-echarts";
@@ -32,12 +33,12 @@ const useFilteredData = (
   data: IData,
   state: {
     roomType: string;
-    area: string[];
+    areas: string[];
   },
 ) => {
   return computed(() => {
     const records = data.records.filter(
-      r => r.flat_type === state.roomType && state.area.includes(r.town),
+      r => r.flat_type === state.roomType && state.areas.includes(r.town),
     );
     const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
     const transformFunc = flow([
@@ -114,7 +115,6 @@ const useEChartsOptions = (
         : iwanthue(datasetLength, {
             colorSpace: { cmin: 30, cmax: 100, ...lightness },
             seed: "random seed",
-            quality: 100,
           });
     return {
       title: {
@@ -173,13 +173,13 @@ const useEChartsOptions = (
 };
 
 const preferAreas = [
+  "BUKIT BATOK",
   "BUKIT PANJANG",
   "BUKIT TIMAH",
   "CHOA CHU KANG",
   "JURONG EAST",
   "JURONG WEST",
   "SEMBAWANG",
-  "SENGKANG",
   "SERANGOON",
   "WOODLANDS",
   "YISHUN",
@@ -203,19 +203,37 @@ export default createComponent({
     const roomTypes = computed(() =>
       Array.from(new Set(data.records.map(r => r.flat_type))),
     );
+    const setPreferAreas = ref(false);
     const state = reactive({
       roomType: "5-ROOM",
-      area: [] as string[],
+      usePreferAreas: true,
+      areas: [] as string[],
     });
-    const usePreferAreas = ref(true);
-    watch([areas, usePreferAreas], () => {
-      state.area = usePreferAreas.value
+    watch([areas, toRefs(state).usePreferAreas], () => {
+      if (setPreferAreas.value) {
+        setPreferAreas.value = false;
+        return;
+      }
+      const newAreas = state.usePreferAreas
         ? preferAreas.filter(a => areas.value.includes(a))
         : (areas.value as string[]);
+      if (!isEqual(sortBy(newAreas), sortBy(state.areas))) {
+        state.areas = newAreas;
+      }
+    });
+    watch([toRefs(state).areas], () => {
+      if (
+        areas.value.length > 0 &&
+        state.usePreferAreas &&
+        !isEqual(sortBy(state.areas), sortBy(preferAreas))
+      ) {
+        setPreferAreas.value = true;
+        state.usePreferAreas = false;
+      }
     });
     const filteredData = useFilteredData(data, state);
     const options = useEChartsOptions(context, filteredData);
-    return { chart: data, state, usePreferAreas, roomTypes, areas, options };
+    return { chart: data, state, roomTypes, areas, options };
   },
   render() {
     // check https://github.com/vuejs/composition-api/issues/191 for all @ts-ignore in render
@@ -232,7 +250,7 @@ export default createComponent({
         {
           <v-checkbox
             // @ts-ignore
-            v-model={this.usePreferAreas}
+            v-model={this.state.usePreferAreas}
             color="primary"
             label="Use Prefer areas"
           ></v-checkbox>
@@ -247,7 +265,7 @@ export default createComponent({
             }
             v-model={
               // @ts-ignore
-              this.state.area
+              this.state.areas
             }
             label="Area"
             dense
