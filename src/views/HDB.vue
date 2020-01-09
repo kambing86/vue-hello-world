@@ -2,47 +2,22 @@
 import Vue from "vue";
 import {
   reactive,
-  onMounted,
   computed,
   SetupContext,
   createComponent,
+  watch,
+  ref,
 } from "@vue/composition-api";
 import { flow, groupBy, mapValues, map, sortBy } from "lodash";
-import { VBtn, VCard, VProgressCircular, VSelect } from "vuetify/lib";
+import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
 // @ts-ignore
 import ECharts from "vue-echarts";
 import "echarts";
 // @ts-ignore
 import iwanthue from "iwanthue";
-
-interface IRecord {
-  town: string;
-  flat_type: string;
-  quarter: string;
-  _id: number;
-  price: string;
-}
-
-interface IData {
-  fields: { type: string; id: string }[];
-  records: IRecord[];
-}
-
-const useData = () => {
-  const data = reactive({
-    fields: [],
-    records: [],
-  } as IData);
-  onMounted(async () => {
-    const response = await fetch(
-      "https://data.gov.sg/api/action/datastore_search?resource_id=a5ddfc4d-0e43-4bfe-8f51-e504e1365e27&limit=10000",
-    );
-    const jsonResult = await response.json();
-    data.fields = jsonResult.result.fields;
-    data.records = jsonResult.result.records.map(normalizeData);
-  });
-  return data;
-};
+// @ts-ignore
+import precomputed from "iwanthue/precomputed/k-means";
+import { useData, IData, INormalizedRecord } from "./HDB/getData";
 
 const getNearestMin = (numbers: number[]) => {
   const min = Math.min(...numbers);
@@ -53,47 +28,23 @@ const getNearestMin = (numbers: number[]) => {
 const darkThemeColor1 = "#fff";
 const darkThemeColor2 = "#888";
 
-interface INormalizedRecord {
-  town: string;
-  flat_type: string;
-  quarter: string;
-  _id: number;
-  price: number;
-}
-
-const normalizeData = (r: IRecord): INormalizedRecord => {
-  let town = r.town.toUpperCase();
-  if (town.startsWith("CENTRAL")) {
-    town = "CENTRAL";
-  }
-  let flat_type = r.flat_type.toUpperCase();
-  if (flat_type.startsWith("EXEC")) {
-    flat_type = "EXEC";
-  }
-  return {
-    ...r,
-    town,
-    flat_type,
-    price:
-      r.price === "-" || r.price.toLowerCase() === "na" ? 0 : parseInt(r.price),
-  };
-};
-
-const useEChartsOptions = (
-  context: SetupContext,
+const useFilteredData = (
   data: IData,
-  state: { roomType: string },
+  state: {
+    roomType: string;
+    area: string[];
+  },
 ) => {
-  const quarters = computed(() =>
-    Array.from(new Set(data.records.map(r => r.quarter))).sort(),
-  );
-  const datasets = computed(() => {
-    const records = data.records.filter(r => r.flat_type === state.roomType);
+  return computed(() => {
+    const records = data.records.filter(
+      r => r.flat_type === state.roomType && state.area.includes(r.town),
+    );
+    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
     const transformFunc = flow([
       (arr: INormalizedRecord[]) => groupBy(arr, r => r.town),
       obj =>
         mapValues(obj, (v: INormalizedRecord[]) =>
-          quarters.value
+          quarters
             .map(q => v.find((r: INormalizedRecord) => r.quarter === q))
             .map(r => (r && (r.price === 0 ? null : r.price)) || null),
         ),
@@ -107,10 +58,18 @@ const useEChartsOptions = (
       arr => arr.filter((a: any) => !a.data.every((d: any) => d === null)),
       arr => sortBy(arr, a => a.name),
     ]);
-    return transformFunc(records);
+    return { quarters, datasets: transformFunc(records) };
   });
-  const legends = computed(() => datasets.value.map((d: any) => d.name));
+};
+
+const useEChartsOptions = (
+  context: SetupContext,
+  filteredData: ReturnType<typeof useFilteredData>,
+) => {
   return computed(() => {
+    const legends = computed(() =>
+      filteredData.value.datasets.map((d: any) => d.name),
+    );
     const isDarkTheme = context.root.$vuetify.theme.dark;
     const textStyle = isDarkTheme
       ? { textStyle: { color: darkThemeColor1 } }
@@ -139,9 +98,6 @@ const useEChartsOptions = (
           },
         }
       : {};
-    const datasetColorStyle = isDarkTheme
-      ? { lightMin: 50, lightMax: 100 }
-      : { lightMin: 0, lightMax: 50 };
     const lightness = isDarkTheme
       ? {
           lmin: 50,
@@ -151,14 +107,18 @@ const useEChartsOptions = (
           lmin: 15,
           lmax: 50,
         };
-    const colors = iwanthue(datasets.value.length, {
-      colorSpace: { cmin: 30, cmax: 100, ...lightness },
-      seed: "random seed",
-      quality: 100,
-    });
+    const datasetLength = filteredData.value.datasets.length;
+    const colors =
+      datasetLength <= 2
+        ? precomputed[datasetLength]
+        : iwanthue(datasetLength, {
+            colorSpace: { cmin: 30, cmax: 100, ...lightness },
+            seed: "random seed",
+            quality: 100,
+          });
     return {
       title: {
-        text: `${state.roomType} Resale Flat Prices`,
+        text: `Resale Flat Prices`,
         left: "50%",
         textAlign: "center",
         ...textStyle,
@@ -194,7 +154,7 @@ const useEChartsOptions = (
         nameLocation: "center",
         nameGap: 25,
         boundaryGap: false,
-        data: quarters.value,
+        data: filteredData.value.quarters,
         ...axisStyle,
       },
       yAxis: {
@@ -205,31 +165,57 @@ const useEChartsOptions = (
         },
         ...axisStyle,
       },
-      series: datasets.value,
+      series: filteredData.value.datasets,
       color: colors,
       ...textStyle,
     };
   });
 };
 
+const preferAreas = [
+  "BUKIT PANJANG",
+  "BUKIT TIMAH",
+  "CHOA CHU KANG",
+  "JURONG EAST",
+  "JURONG WEST",
+  "SEMBAWANG",
+  "SENGKANG",
+  "SERANGOON",
+  "WOODLANDS",
+  "YISHUN",
+];
+
+// will be replaced by defineComponent
 export default createComponent({
   components: {
     "v-card": VCard,
     "v-progress-circular": VProgressCircular,
     "v-chart": ECharts,
     "v-select": VSelect,
+    "v-checkbox": VCheckbox,
   },
   setup(props, context) {
     // console.log("setup", props, context);
     const data = useData();
-    const state = reactive({
-      roomType: "5-ROOM",
-    });
+    const areas = computed(() =>
+      Array.from(new Set(data.records.map(r => r.town))).sort(),
+    );
     const roomTypes = computed(() =>
       Array.from(new Set(data.records.map(r => r.flat_type))),
     );
-    const options = useEChartsOptions(context, data, state);
-    return { data, state, roomTypes, options };
+    const state = reactive({
+      roomType: "5-ROOM",
+      area: [] as string[],
+    });
+    const usePreferAreas = ref(true);
+    watch([areas, usePreferAreas], () => {
+      state.area = usePreferAreas.value
+        ? preferAreas.filter(a => areas.value.includes(a))
+        : (areas.value as string[]);
+    });
+    const filteredData = useFilteredData(data, state);
+    const options = useEChartsOptions(context, filteredData);
+    return { chart: data, state, usePreferAreas, roomTypes, areas, options };
   },
   render() {
     // check https://github.com/vuejs/composition-api/issues/191 for all @ts-ignore in render
@@ -237,11 +223,37 @@ export default createComponent({
       <v-card class="d-flex flex-column fill-height justify-center align-center pa-2">
         {//
         // @ts-ignore
-        this.data.records.length === 0 && (
+        this.chart.records.length === 0 && (
           <v-progress-circular
             indeterminate
             color="primary"
           ></v-progress-circular>
+        )}
+        {
+          <v-checkbox
+            // @ts-ignore
+            v-model={this.usePreferAreas}
+            color="primary"
+            label="Use Prefer areas"
+          ></v-checkbox>
+        }
+        {//
+        // @ts-ignore
+        this.areas.length > 0 && (
+          <v-select
+            items={
+              // @ts-ignore
+              this.areas
+            }
+            v-model={
+              // @ts-ignore
+              this.state.area
+            }
+            label="Area"
+            dense
+            outlined
+            multiple
+          ></v-select>
         )}
         {//
         // @ts-ignore
@@ -262,13 +274,13 @@ export default createComponent({
         )}
         {//
         // @ts-ignore
-        this.data.records.length > 0 && (
+        this.chart.records.length > 0 && (
           <v-chart
             options={
               // @ts-ignore
               this.options
             }
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", height: "88vh" }}
             autoresize
           />
         )}
