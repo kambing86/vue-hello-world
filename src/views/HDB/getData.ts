@@ -10,7 +10,7 @@ export interface IRecord {
 
 export interface IData {
   fields: { type: string; id: string }[];
-  records: IRecord[];
+  records: INormalizedRecord[];
 }
 
 export interface INormalizedRecord {

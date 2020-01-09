@@ -29,6 +29,13 @@ const getNearestMin = (numbers: number[]) => {
 const darkThemeColor1 = "#fff";
 const darkThemeColor2 = "#888";
 
+interface IEntry {
+  name: string;
+  type: "line";
+  data: (number | null)[];
+  connectNulls: true;
+}
+
 const useFilteredData = (
   data: IData,
   state: {
@@ -41,24 +48,28 @@ const useFilteredData = (
       r => r.flat_type === state.roomType && state.areas.includes(r.town),
     );
     const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
-    const transformFunc = flow([
-      (arr: INormalizedRecord[]) => groupBy(arr, r => r.town),
+    const transformFunc: (arr: INormalizedRecord[]) => IEntry[] = flow(
+      arr => groupBy(arr, r => r.town),
       obj =>
-        mapValues(obj, (v: INormalizedRecord[]) =>
+        mapValues(obj, v =>
           quarters
-            .map(q => v.find((r: INormalizedRecord) => r.quarter === q))
+            .map(q => v.find(r => r.quarter === q))
             .map(r => (r && (r.price === 0 ? null : r.price)) || null),
         ),
       obj =>
-        map(obj, (value, key) => ({
-          name: key,
-          type: "line",
-          data: value,
-          connectNulls: true,
-        })),
-      arr => arr.filter((a: any) => !a.data.every((d: any) => d === null)),
+        map(
+          obj,
+          (value, key) =>
+            ({
+              name: key,
+              type: "line",
+              data: value,
+              connectNulls: true,
+            } as IEntry),
+        ),
+      arr => arr.filter(a => !a.data.every(d => d === null)),
       arr => sortBy(arr, a => a.name),
-    ]);
+    );
     return { quarters, datasets: transformFunc(records) };
   });
 };
@@ -67,10 +78,7 @@ const useEChartsOptions = (
   context: SetupContext,
   filteredData: ReturnType<typeof useFilteredData>,
 ) => {
-  return computed(() => {
-    const legends = computed(() =>
-      filteredData.value.datasets.map((d: any) => d.name),
-    );
+  const styles = computed(() => {
     const isDarkTheme = context.root.$vuetify.theme.dark;
     const textStyle = isDarkTheme
       ? { textStyle: { color: darkThemeColor1 } }
@@ -108,7 +116,25 @@ const useEChartsOptions = (
           lmin: 15,
           lmax: 50,
         };
-    const datasetLength = filteredData.value.datasets.length;
+    return {
+      textStyle,
+      legendStyle,
+      axisStyle,
+      dataZoomStyle,
+      lightness,
+    };
+  });
+  return computed(() => {
+    const {
+      textStyle,
+      legendStyle,
+      axisStyle,
+      dataZoomStyle,
+      lightness,
+    } = styles.value;
+    const { datasets, quarters } = filteredData.value;
+    const legends = datasets.map(d => d.name);
+    const datasetLength = datasets.length;
     const colors =
       datasetLength <= 2
         ? precomputed[datasetLength]
@@ -129,7 +155,7 @@ const useEChartsOptions = (
       legend: {
         type: "scroll",
         top: "28",
-        data: legends.value,
+        data: legends,
         ...legendStyle,
       },
       dataZoom: [
@@ -154,7 +180,7 @@ const useEChartsOptions = (
         nameLocation: "center",
         nameGap: 25,
         boundaryGap: false,
-        data: filteredData.value.quarters,
+        data: quarters,
         ...axisStyle,
       },
       yAxis: {
@@ -165,7 +191,7 @@ const useEChartsOptions = (
         },
         ...axisStyle,
       },
-      series: filteredData.value.datasets,
+      series: datasets,
       color: colors,
       ...textStyle,
     };
