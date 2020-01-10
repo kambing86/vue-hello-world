@@ -96,7 +96,7 @@ const useEChartsOptions = (
     const datasetLength = datasets.length;
     const colors =
       datasetLength <= 2
-        ? precomputed[datasetLength]
+        ? precomputed[15].slice(0, datasetLength)
         : iwanthue(datasetLength, {
             colorSpace: { cmin: 30, cmax: 100, ...lightness },
             seed: "random seed",
