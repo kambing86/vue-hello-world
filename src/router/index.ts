@@ -22,7 +22,7 @@ const routes = [
   {
     path: "/hdb",
     name: "hdb",
-    component: () => import(/* webpackChunkName: "about" */ "@/views/HDB.vue"),
+    component: () => import(/* webpackChunkName: "hdb" */ "@/views/HDB.vue"),
   },
 ];
 

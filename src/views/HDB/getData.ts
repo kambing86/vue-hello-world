@@ -1,5 +1,9 @@
 import { reactive, onMounted, computed } from "@vue/composition-api";
-import { flow, groupBy, mapValues, map, sortBy } from "lodash";
+import flow from "lodash/flow";
+import groupBy from "lodash/groupBy";
+import mapValues from "lodash/mapValues";
+import map from "lodash/map";
+import sortBy from "lodash/sortBy";
 
 export interface IRecord {
   town: string;

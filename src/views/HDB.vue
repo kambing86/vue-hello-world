@@ -9,7 +9,8 @@ import {
   ref,
   toRefs,
 } from "@vue/composition-api";
-import { sortBy, isEqual } from "lodash";
+import sortBy from "lodash/sortBy";
+import isEqual from "lodash/isEqual";
 import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
 // @ts-ignore
 import ECharts from "vue-echarts";
