@@ -25,6 +25,7 @@ import {
   IData,
   INormalizedRecord,
 } from "./HDB/getData";
+import store from "@/store";
 
 const getNearestMin = (numbers: number[]) => {
   const min = Math.min(...numbers);
@@ -180,9 +181,10 @@ export default createComponent({
     "v-select": VSelect,
     "v-checkbox": VCheckbox,
   },
+  store,
   setup(props, context) {
     // console.log("setup", props, context);
-    const data = useData();
+    const data = useData(context.root.$store);
     const areas = computed(() =>
       Array.from(new Set(data.records.map(r => r.town))).sort(),
     );

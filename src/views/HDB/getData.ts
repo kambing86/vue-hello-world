@@ -4,6 +4,7 @@ import groupBy from "lodash/groupBy";
 import mapValues from "lodash/mapValues";
 import map from "lodash/map";
 import sortBy from "lodash/sortBy";
+import { StoreType } from "@/store";
 
 export interface IRecord {
   town: string;
@@ -44,18 +45,15 @@ const normalizeData = (r: IRecord): INormalizedRecord => {
   };
 };
 
-export const useData = () => {
+export const useData = (store: StoreType) => {
   const data = reactive({
     fields: [],
     records: [],
   } as IData);
   onMounted(async () => {
-    const response = await fetch(
-      "https://data.gov.sg/api/action/datastore_search?resource_id=a5ddfc4d-0e43-4bfe-8f51-e504e1365e27&limit=10000",
-    );
-    const jsonResult = await response.json();
-    data.fields = jsonResult.result.fields;
-    data.records = jsonResult.result.records.map(normalizeData);
+    await store.dispatch("hdb/getData");
+    data.fields = store.getters["hdb/fields"];
+    data.records = store.getters["hdb/records"].map(normalizeData);
   });
   return data;
 };
