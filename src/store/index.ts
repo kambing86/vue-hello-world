@@ -12,6 +12,7 @@ const store = new Vuex.Store<State>({
   modules: {
     hdb,
   },
+  strict: process.env.NODE_ENV !== "production",
 });
 
 export type StoreType = typeof store;
