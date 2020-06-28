@@ -15,7 +15,6 @@ import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
 // @ts-ignore
 import ECharts from "vue-echarts";
 import "echarts";
-// @ts-ignore
 import iwanthue from "iwanthue";
 // @ts-ignore
 import precomputed from "iwanthue/precomputed/k-means";
@@ -96,13 +95,18 @@ const useEChartsOptions = (
     } = styles.value;
     const { datasets, quarters, legends } = filteredData.value;
     const datasetLength = datasets.length;
+    const iwanthueOptions = {
+      colorSpace: { cmin: 30, cmax: 100, ...lightness },
+      seed: "random seed",
+    };
     const colors =
       datasetLength <= 2
         ? precomputed[15].slice(0, datasetLength)
-        : iwanthue(datasetLength, {
-            colorSpace: { cmin: 30, cmax: 100, ...lightness },
-            seed: "random seed",
-          });
+        : iwanthue(
+            datasetLength,
+            // @ts-ignore
+            iwanthueOptions,
+          );
     return {
       title: {
         text: `Resale Flat Prices`,
