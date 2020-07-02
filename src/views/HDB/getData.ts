@@ -74,18 +74,18 @@ export const useFilteredData = (
 ) => {
   return computed(() => {
     const records = data.records.filter(
-      r => r.flat_type === state.roomType && state.areas.includes(r.town),
+      (r) => r.flat_type === state.roomType && state.areas.includes(r.town),
     );
-    const quarters = Array.from(new Set(records.map(r => r.quarter))).sort();
+    const quarters = Array.from(new Set(records.map((r) => r.quarter))).sort();
     const transformFunc: (arr: INormalizedRecord[]) => IDataset[] = flow(
-      arr => groupBy(arr, r => r.town),
-      obj =>
-        mapValues(obj, v =>
+      (arr) => groupBy(arr, (r) => r.town),
+      (obj) =>
+        mapValues(obj, (v) =>
           quarters
-            .map(q => v.find(r => r.quarter === q))
-            .map(r => (r && (r.price === 0 ? null : r.price)) || null),
+            .map((q) => v.find((r) => r.quarter === q))
+            .map((r) => (r && (r.price === 0 ? null : r.price)) || null),
         ),
-      obj =>
+      (obj) =>
         map(
           obj,
           (value, key) =>
@@ -96,11 +96,11 @@ export const useFilteredData = (
               connectNulls: true,
             } as IDataset),
         ),
-      arr => arr.filter(a => !a.data.every(d => d === null)),
-      arr => sortBy(arr, a => a.name),
+      (arr) => arr.filter((a) => !a.data.every((d) => d === null)),
+      (arr) => sortBy(arr, (a) => a.name),
     );
     const datasets = transformFunc(records);
-    const legends = datasets.map(d => d.name);
+    const legends = datasets.map((d) => d.name);
     return { quarters, datasets, legends };
   });
 };

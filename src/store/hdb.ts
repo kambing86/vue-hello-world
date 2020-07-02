@@ -10,10 +10,10 @@ const hdbModule: Module<State, any> = {
     data: null,
   },
   getters: {
-    fields: state => {
+    fields: (state) => {
       return state.data?.fields ?? [];
     },
-    records: state => {
+    records: (state) => {
       return state.data?.records ?? [];
     },
   },

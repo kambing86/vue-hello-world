@@ -4,7 +4,7 @@ import {
   reactive,
   computed,
   SetupContext,
-  createComponent,
+  defineComponent,
   watch,
   ref,
   toRefs,
@@ -176,8 +176,7 @@ const preferAreas = [
   "YISHUN",
 ];
 
-// will be replaced by defineComponent
-export default createComponent({
+export default defineComponent({
   components: {
     "v-card": VCard,
     "v-progress-circular": VProgressCircular,
@@ -190,10 +189,10 @@ export default createComponent({
     // console.log("setup", props, context);
     const data = useData(context.root.$store);
     const areas = computed(() =>
-      Array.from(new Set(data.records.map(r => r.town))).sort(),
+      Array.from(new Set(data.records.map((r) => r.town))).sort(),
     );
     const roomTypes = computed(() =>
-      Array.from(new Set(data.records.map(r => r.flat_type))),
+      Array.from(new Set(data.records.map((r) => r.flat_type))),
     );
     const setPreferAreas = ref(false);
     const state = reactive({
@@ -207,7 +206,7 @@ export default createComponent({
         return;
       }
       const newAreas = state.usePreferAreas
-        ? preferAreas.filter(a => areas.value.includes(a))
+        ? preferAreas.filter((a) => areas.value.includes(a))
         : (areas.value as string[]);
       if (!isEqual(sortBy(newAreas), sortBy(state.areas))) {
         state.areas = newAreas;
@@ -231,14 +230,16 @@ export default createComponent({
     // check https://github.com/vuejs/composition-api/issues/191 for all @ts-ignore in render
     return (
       <v-card class="d-flex flex-column fill-height justify-center align-center pa-2">
-        {//
-        // @ts-ignore
-        this.chart.records.length === 0 && (
-          <v-progress-circular
-            indeterminate
-            color="primary"
-          ></v-progress-circular>
-        )}
+        {
+          //
+          // @ts-ignore
+          this.chart.records.length === 0 && (
+            <v-progress-circular
+              indeterminate
+              color="primary"
+            ></v-progress-circular>
+          )
+        }
         {
           <v-checkbox
             // @ts-ignore
@@ -247,54 +248,60 @@ export default createComponent({
             label="Use Prefer areas"
           ></v-checkbox>
         }
-        {//
-        // @ts-ignore
-        this.areas.length > 0 && (
-          <v-select
-            items={
-              // @ts-ignore
-              this.areas
-            }
-            v-model={
-              // @ts-ignore
-              this.state.areas
-            }
-            label="Area"
-            dense
-            outlined
-            multiple
-            style={{ width: "50%" }}
-          ></v-select>
-        )}
-        {//
-        // @ts-ignore
-        this.roomTypes.length > 0 && (
-          <v-select
-            items={
-              // @ts-ignore
-              this.roomTypes
-            }
-            v-model={
-              // @ts-ignore
-              this.state.roomType
-            }
-            label="Room types"
-            dense
-            outlined
-          ></v-select>
-        )}
-        {//
-        // @ts-ignore
-        this.chart.records.length > 0 && (
-          <v-chart
-            options={
-              // @ts-ignore
-              this.options
-            }
-            style={{ width: "100%", height: "88vh" }}
-            autoresize
-          />
-        )}
+        {
+          //
+          // @ts-ignore
+          this.areas.length > 0 && (
+            <v-select
+              items={
+                // @ts-ignore
+                this.areas
+              }
+              v-model={
+                // @ts-ignore
+                this.state.areas
+              }
+              label="Area"
+              dense
+              outlined
+              multiple
+              style={{ width: "50%" }}
+            ></v-select>
+          )
+        }
+        {
+          //
+          // @ts-ignore
+          this.roomTypes.length > 0 && (
+            <v-select
+              items={
+                // @ts-ignore
+                this.roomTypes
+              }
+              v-model={
+                // @ts-ignore
+                this.state.roomType
+              }
+              label="Room types"
+              dense
+              outlined
+            ></v-select>
+          )
+        }
+        {
+          //
+          // @ts-ignore
+          this.chart.records.length > 0 && (
+            <v-chart
+              options={
+                // @ts-ignore
+                this.options
+              }
+              style={{ width: "100%", height: "88vh" }}
+              autoresize
+            />
+          )
+        }
       </v-card>
     );
   },
