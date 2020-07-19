@@ -18,7 +18,7 @@
     "core-js": "^3.6.5",
     "echarts": "^4.8.0",
     "iwanthue": "^1.4.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "vue": "^2.6.11",
     "vue-class-component": "^7.2.3",
     "vue-echarts": "^5.0.0-beta.0",
