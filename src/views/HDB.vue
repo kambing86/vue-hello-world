@@ -1,5 +1,4 @@
 <script lang="tsx">
-import Vue from "vue";
 import {
   reactive,
   computed,
@@ -12,18 +11,12 @@ import {
 import sortBy from "lodash/sortBy";
 import isEqual from "lodash/isEqual";
 import { VCard, VProgressCircular, VSelect, VCheckbox } from "vuetify/lib";
-// @ts-ignore
 import ECharts from "vue-echarts";
 import "echarts";
 import iwanthue from "iwanthue";
 // @ts-ignore
 import precomputed from "iwanthue/precomputed/k-means";
-import {
-  useData,
-  useFilteredData,
-  IData,
-  INormalizedRecord,
-} from "./HDB/getData";
+import { useData, useFilteredData } from "./HDB/getData";
 import store from "@/store";
 
 const getNearestMin = (numbers: number[]) => {
@@ -32,8 +25,10 @@ const getNearestMin = (numbers: number[]) => {
   return min - (min % nearestUnit);
 };
 
+const lightThemeColor1 = "#000";
+const lightThemeColor2 = "#aaa";
 const darkThemeColor1 = "#fff";
-const darkThemeColor2 = "#888";
+const darkThemeColor2 = "#555";
 
 const useEChartsOptions = (
   context: SetupContext,
@@ -43,12 +38,14 @@ const useEChartsOptions = (
     const isDarkTheme = context.root.$vuetify.theme.dark;
     const textStyle = isDarkTheme
       ? { textStyle: { color: darkThemeColor1 } }
-      : {};
+      : { textStyle: { color: lightThemeColor1 } };
     const lineStyle = isDarkTheme
       ? {
           lineStyle: { color: darkThemeColor1 },
         }
-      : {};
+      : {
+          lineStyle: { color: lightThemeColor1 },
+        };
     const legendStyle = isDarkTheme
       ? {
           ...textStyle,
@@ -58,8 +55,15 @@ const useEChartsOptions = (
           pageIconColor: darkThemeColor1,
           pageIconInactiveColor: darkThemeColor2,
         }
-      : {};
-    const axisStyle = isDarkTheme ? { axisLine: { ...lineStyle } } : {};
+      : {
+          ...textStyle,
+          inactiveColor: lightThemeColor2,
+          borderColor: lightThemeColor2,
+          pageTextStyle: { color: lightThemeColor1 },
+          pageIconColor: lightThemeColor1,
+          pageIconInactiveColor: lightThemeColor2,
+        };
+    const axisStyle = { axisLine: { ...lineStyle } };
     const dataZoomStyle = isDarkTheme
       ? {
           dataBackground: {
@@ -67,7 +71,12 @@ const useEChartsOptions = (
             areaStyle: { color: darkThemeColor2 },
           },
         }
-      : {};
+      : {
+          dataBackground: {
+            ...lineStyle,
+            areaStyle: { color: lightThemeColor2 },
+          },
+        };
     const lightness = isDarkTheme
       ? {
           lmin: 50,
@@ -86,13 +95,8 @@ const useEChartsOptions = (
     };
   });
   return computed(() => {
-    const {
-      textStyle,
-      legendStyle,
-      axisStyle,
-      dataZoomStyle,
-      lightness,
-    } = styles.value;
+    const { textStyle, legendStyle, axisStyle, dataZoomStyle, lightness } =
+      styles.value;
     const { datasets, quarters, legends } = filteredData.value;
     const datasetLength = datasets.length;
     const iwanthueOptions = {
@@ -223,85 +227,53 @@ export default defineComponent({
       }
     });
     const filteredData = useFilteredData(data, state);
-    const options = useEChartsOptions(context, filteredData);
-    return { chart: data, state, roomTypes, areas, options };
+    const option = useEChartsOptions(context, filteredData);
+    console.log({ data, option });
+    return { chart: data, state, roomTypes, areas, option };
   },
   render() {
-    // check https://github.com/vuejs/composition-api/issues/191 for all @ts-ignore in render
     return (
       <v-card class="d-flex flex-column fill-height justify-center align-center pa-2">
-        {
-          //
-          // @ts-ignore
-          this.chart.records.length === 0 && (
-            <v-progress-circular
-              indeterminate
-              color="primary"
-            ></v-progress-circular>
-          )
-        }
+        {this.chart.records.length === 0 && (
+          <v-progress-circular
+            indeterminate
+            color="primary"
+          ></v-progress-circular>
+        )}
         {
           <v-checkbox
-            // @ts-ignore
             v-model={this.state.usePreferAreas}
             color="primary"
             label="Use Prefer areas"
           ></v-checkbox>
         }
-        {
-          //
-          // @ts-ignore
-          this.areas.length > 0 && (
-            <v-select
-              items={
-                // @ts-ignore
-                this.areas
-              }
-              v-model={
-                // @ts-ignore
-                this.state.areas
-              }
-              label="Area"
-              dense
-              outlined
-              multiple
-              style={{ width: "50%" }}
-            ></v-select>
-          )
-        }
-        {
-          //
-          // @ts-ignore
-          this.roomTypes.length > 0 && (
-            <v-select
-              items={
-                // @ts-ignore
-                this.roomTypes
-              }
-              v-model={
-                // @ts-ignore
-                this.state.roomType
-              }
-              label="Room types"
-              dense
-              outlined
-            ></v-select>
-          )
-        }
-        {
-          //
-          // @ts-ignore
-          this.chart.records.length > 0 && (
-            <v-chart
-              options={
-                // @ts-ignore
-                this.options
-              }
-              style={{ width: "100%", height: "88vh" }}
-              autoresize
-            />
-          )
-        }
+        {this.areas.length > 0 && (
+          <v-select
+            items={this.areas}
+            v-model={this.state.areas}
+            label="Area"
+            dense
+            outlined
+            multiple
+            style={{ width: "50%" }}
+          ></v-select>
+        )}
+        {this.roomTypes.length > 0 && (
+          <v-select
+            items={this.roomTypes}
+            v-model={this.state.roomType}
+            label="Room types"
+            dense
+            outlined
+          ></v-select>
+        )}
+        {this.chart.records.length > 0 && (
+          <v-chart
+            option={this.option}
+            style={{ width: "100%", height: "88vh" }}
+            autoresize
+          />
+        )}
       </v-card>
     );
   },
