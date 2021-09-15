@@ -228,7 +228,6 @@ export default defineComponent({
     });
     const filteredData = useFilteredData(data, state);
     const option = useEChartsOptions(context, filteredData);
-    console.log({ data, option });
     return { chart: data, state, roomTypes, areas, option };
   },
   render() {
